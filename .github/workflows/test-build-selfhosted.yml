@@ -36,6 +36,12 @@ jobs:
           # Add flutter to PATH explicitly
           export PATH=$PATH:$FLUTTER_ROOT/bin
           
+          # Fix permissions for pubspec.lock EARLY
+          if [ -f "flutter/pubspec.lock" ]; then
+              sudo chown $(whoami) flutter/pubspec.lock || true
+              sudo chmod 666 flutter/pubspec.lock || true
+          fi
+          
           # Install codegen tools if missing
           if ! command -v cargo-expand &> /dev/null; then
               cargo install cargo-expand --version ${{ env.CARGO_EXPAND_VERSION }} --locked
@@ -103,6 +109,12 @@ jobs:
         run: |
           # Add flutter to PATH explicitly
           export PATH=$PATH:$FLUTTER_ROOT/bin
+          
+          # Fix permissions for pubspec.lock EARLY
+          if [ -f "flutter/pubspec.lock" ]; then
+              sudo chown $(whoami) flutter/pubspec.lock || true
+              sudo chmod 666 flutter/pubspec.lock || true
+          fi
           
           # Install codegen tools if missing
           if ! command -v cargo-expand &> /dev/null; then
