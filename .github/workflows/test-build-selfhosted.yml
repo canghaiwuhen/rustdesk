@@ -1,0 +1,106 @@
+name: Test Build (Self-Hosted)
+
+on:
+  workflow_dispatch:
+
+env:
+  RUST_VERSION: "1.75.0"
+  FLUTTER_VERSION: "3.24.5"
+  VCPKG_COMMIT_ID: "120deac3062162151622ca4860575a33844ba10b"
+
+jobs:
+  test-linux-build:
+    name: Test Linux Build
+    runs-on: [self-hosted, linux]
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Vcpkg Information
+        run: |
+          echo "VCPKG_ROOT is $VCPKG_ROOT"
+          if [ -d "$VCPKG_ROOT" ]; then
+            echo "Vcpkg directory exists."
+            $VCPKG_ROOT/vcpkg --version
+          else
+            echo "Error: VCPKG_ROOT not found!"
+            exit 1
+          fi
+
+      - name: Install Rust dependencies (Vcpkg)
+        run: |
+          # Ensure vcpkg is executable
+          chmod +x $VCPKG_ROOT/vcpkg
+          # Install dependencies for Linux x64
+          $VCPKG_ROOT/vcpkg install --triplet x64-linux --x-install-root="$VCPKG_ROOT/installed"
+
+      - name: Build Rust Lib
+        run: |
+          cargo build --release --features hwcodec,flutter,unix-file-copy-paste
+
+      - name: Build Flutter App
+        run: |
+          # Ensure flutter dependencies are ready
+          cd flutter
+          flutter pub get
+          cd ..
+          
+          # Build using the python script, verifying the linux pipeline
+          python3 build.py --flutter --skip-cargo
+
+  test-android-build:
+    name: Test Android Build
+    runs-on: [self-hosted, linux]
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Check Environments
+        run: |
+          echo "ANDROID_HOME: $ANDROID_HOME"
+          echo "NDK_HOME: $NDK_HOME"
+          ls -d $NDK_HOME
+
+      - name: Install cargo-ndk
+        run: |
+          if ! command -v cargo-ndk &> /dev/null; then
+              echo "Installing cargo-ndk..."
+              cargo install cargo-ndk
+          else
+              echo "cargo-ndk already installed."
+          fi
+
+      - name: Install Android Dependencies (Vcpkg)
+        run: |
+          chmod +x ./flutter/build_android_deps.sh
+          # Build deps for arm64 only to save time for testing
+          ./flutter/build_android_deps.sh arm64-v8a
+
+      - name: Build Rust Lib for Android
+        run: |
+          rustup target add aarch64-linux-android
+          
+          chmod +x ./flutter/ndk_arm64.sh
+          ./flutter/ndk_arm64.sh
+          
+          mkdir -p ./flutter/android/app/src/main/jniLibs/arm64-v8a
+          cp ./target/aarch64-linux-android/release/liblibrustdesk.so ./flutter/android/app/src/main/jniLibs/arm64-v8a/librustdesk.so
+          
+          # Important: Copy libc++_shared.so
+          cp $NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so ./flutter/android/app/src/main/jniLibs/arm64-v8a/
+
+      - name: Build Flutter APK
+        working-directory: ./flutter
+        run: |
+          flutter config --no-analytics
+          flutter pub get
+          flutter build apk --release --target-platform android-arm64 --split-per-abi
+
+      - name: Verify APK
+        run: |
+          ls -lh ./flutter/build/app/outputs/flutter-apk/*.apk
+
