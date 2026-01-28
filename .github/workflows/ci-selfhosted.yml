@@ -1,0 +1,38 @@
+name: CI (Self-Hosted)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths-ignore: ["docs/**", "README.md"]
+  push:
+    branches: [master]
+    paths-ignore: ["docs/**", "README.md", "res/**", "appimage/**", "flatpak/**"]
+
+jobs:
+  build:
+    name: Build on Self-Hosted Linux
+    # 关键修改点：指定使用 self-hosted runner
+    runs-on: [self-hosted, linux] 
+    
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    # 我们环境里已经预装了所有依赖，所以原本 "Install prerequisites" 那些步骤其实可以跳过
+    # 但保留着也无妨，apt-get 会发现已安装直接跳过
+    
+    - name: Build
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        # 你的 Dockerfile 已经配好了 release 环境，这里可以直接 build release
+        args: --locked --release 
+
+    # 如果需要运行测试
+    # - name: Run tests
+    #   uses: actions-rs/cargo@v1
+    #   with:
+    #     command: test
+    #     args: --locked --release
