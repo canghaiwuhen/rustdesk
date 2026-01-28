@@ -1,0 +1,40 @@
+name: Self-Hosted Runner Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-linux:
+    name: Test Linux Runner
+    runs-on: [self-hosted, linux]
+    steps:
+      - name: Check System Info
+        run: |
+          echo "Hostname: $(hostname)"
+          echo "User: $(whoami)"
+          echo "Work Directory: $(pwd)"
+          
+      - name: Check Tools (Linux)
+        run: |
+          rustc --version || echo "Rust not found"
+          cargo --version || echo "Cargo not found"
+          flutter --version || echo "Flutter not found"
+          vcpkg --version || echo "Vcpkg not found"
+
+  test-windows:
+    name: Test Windows Runner
+    runs-on: [self-hosted, windows]
+    steps:
+      - name: Check System Info
+        run: |
+          Write-Host "ComputerName: $env:COMPUTERNAME"
+          Write-Host "User: $env:USERNAME"
+          Get-Location
+          
+      - name: Check Tools (Windows)
+        run: |
+          rustc --version
+          cargo --version
+          flutter --version
+          git --version
+
