@@ -31,7 +31,12 @@ jobs:
 
       - name: Install Rust dependencies (Vcpkg)
         run: |
-          # Vcpkg binary should already be executable from docker build
+          # Install missing build dependencies
+          # mfx-dispatch needs autoconf
+          if ! command -v autoconf &> /dev/null; then
+              sudo apt-get update && sudo apt-get install -y autoconf libtool
+          fi
+
           # Install dependencies for Linux x64
           $VCPKG_ROOT/vcpkg install --triplet x64-linux --x-install-root="$VCPKG_ROOT/installed"
 
