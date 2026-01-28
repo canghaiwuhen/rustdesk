@@ -20,6 +20,11 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Fix Directory Permissions
+        # Take ownership of the entire workspace to avoid any permission issues
+        run: |
+          sudo chown -R $(whoami) . || true
+
       - name: Setup Vcpkg Information
         run: |
           echo "VCPKG_ROOT is $VCPKG_ROOT"
@@ -98,6 +103,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: Fix Directory Permissions
+        # Take ownership of the entire workspace to avoid any permission issues
+        run: |
+          sudo chown -R $(whoami) . || true
       
       - name: Check Environments
         run: |
