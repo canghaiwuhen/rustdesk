@@ -31,8 +31,7 @@ jobs:
 
       - name: Install Rust dependencies (Vcpkg)
         run: |
-          # Ensure vcpkg is executable
-          chmod +x $VCPKG_ROOT/vcpkg
+          # Vcpkg binary should already be executable from docker build
           # Install dependencies for Linux x64
           $VCPKG_ROOT/vcpkg install --triplet x64-linux --x-install-root="$VCPKG_ROOT/installed"
 
@@ -68,8 +67,9 @@ jobs:
       - name: Install cargo-ndk
         run: |
           if ! command -v cargo-ndk &> /dev/null; then
-              echo "Installing cargo-ndk..."
-              cargo install cargo-ndk
+              echo "Installing cargo-ndk compatible with Rust 1.75..."
+              # Downgrade to 3.5.x for Rust 1.75 compatibility
+              cargo install cargo-ndk --version 3.5.5 --locked
           else
               echo "cargo-ndk already installed."
           fi
