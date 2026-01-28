@@ -71,6 +71,13 @@ jobs:
           
           # Ensure flutter dependencies are ready
           cd flutter
+          
+          # Fix permissions for pubspec.lock
+          if [ -f "pubspec.lock" ]; then
+              sudo chown $(whoami) pubspec.lock || true
+              sudo chmod 666 pubspec.lock || true
+          fi
+          
           flutter pub get
           cd ..
           
@@ -142,6 +149,15 @@ jobs:
       - name: Build Flutter APK
         working-directory: ./flutter
         run: |
+          # Add flutter to PATH explicitly
+          export PATH=$PATH:$FLUTTER_ROOT/bin
+          
+          # Fix permissions for pubspec.lock if it exists and is owned by root
+          if [ -f "pubspec.lock" ]; then
+              sudo chown $(whoami) pubspec.lock || true
+              sudo chmod 666 pubspec.lock || true
+          fi
+          
           flutter config --no-analytics
           flutter pub get
           flutter build apk --release --target-platform android-arm64 --split-per-abi
