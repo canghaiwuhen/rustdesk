@@ -1,0 +1,110 @@
+name: Test Self-Hosted Builds
+
+on:
+  workflow_dispatch:
+
+env:
+  RUST_VERSION: "1.75"
+  FLUTTER_VERSION: "3.24.5"
+  VCPKG_COMMIT_ID: "120deac3062162151622ca4860575a33844ba10b"
+  NDK_VERSION: "27.2.12479018"
+
+jobs:
+  build-windows:
+    name: Build Windows
+    runs-on: [self-hosted, windows]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.PAT_TOKEN }}
+      
+      - name: Show Environment
+        run: |
+          Write-Host "ComputerName: $env:COMPUTERNAME"
+          Write-Host "OS: $env:OS"
+          rustc --version
+          flutter --version
+      
+      - name: Build RustDesk Windows
+        run: |
+          python build.py --flutter
+        continue-on-error: true
+      
+      - name: Upload Windows Artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rustdesk-windows
+          path: |
+            flutter/build/windows/x64/runner/Release/*.exe
+
+  build-linux:
+    name: Build Linux
+    runs-on: [self-hosted, ubuntu-24.04]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.PAT_TOKEN }}
+      
+      - name: Show Environment
+        run: |
+          echo "Hostname: $(hostname)"
+          echo "OS: $(uname -a)"
+          rustc --version
+          flutter --version
+          echo "VCPKG_ROOT: $VCPKG_ROOT"
+      
+      - name: Build RustDesk Linux
+        run: |
+          python3 build.py --flutter
+        continue-on-error: true
+      
+      - name: Upload Linux Artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rustdesk-linux
+          path: |
+            target/release/rustdesk
+
+  build-android:
+    name: Build Android
+    runs-on: [self-hosted, ubuntu-24.04]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.PAT_TOKEN }}
+      
+      - name: Show Environment
+        run: |
+          echo "Android SDK: $ANDROID_SDK_ROOT"
+          echo "NDK: $NDK_HOME"
+          sdkmanager --list_installed
+      
+      - name: Build Android Dependencies
+        run: |
+          cd flutter
+          ./build_android_deps.sh arm64-v8a
+        continue-on-error: true
+      
+      - name: Build RustDesk Android
+        run: |
+          rustup target add aarch64-linux-android
+          cd flutter
+          flutter build apk --release --target-platform android-arm64 --split-per-abi
+        continue-on-error: true
+      
+      - name: Upload Android Artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rustdesk-android
+          path: |
+            flutter/build/app/outputs/flutter-apk/*.apk
+
