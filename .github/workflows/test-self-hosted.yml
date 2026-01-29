@@ -70,6 +70,22 @@ jobs:
               exit 1
           }
       
+      - name: Generate Flutter Bridge Code
+        shell: powershell
+        run: |
+          Write-Host "Generating flutter_rust_bridge code..." -ForegroundColor Yellow
+          
+          # 安装 flutter_rust_bridge_codegen 如果不存在
+          if (-not (Get-Command flutter_rust_bridge_codegen -ErrorAction SilentlyContinue)) {
+              Write-Host "Installing flutter_rust_bridge_codegen..." -ForegroundColor Cyan
+              cargo install flutter_rust_bridge_codegen --version 1.80.1 --features "uuid" --locked
+          }
+          
+          # 生成桥接代码
+          flutter_rust_bridge_codegen --rust-input src/flutter_ffi.rs --dart-output flutter/lib/generated_bridge.dart
+          
+          Write-Host "Bridge code generated!" -ForegroundColor Green
+      
       - name: Build RustDesk Windows
         shell: powershell
         env:
@@ -124,6 +140,21 @@ jobs:
           echo "Flutter version:"
           flutter --version
           echo "VCPKG_ROOT: $VCPKG_ROOT"
+      
+      - name: Generate Flutter Bridge Code
+        run: |
+          echo "Generating flutter_rust_bridge code..."
+          
+          # 安装 flutter_rust_bridge_codegen 如果不存在
+          if ! command -v flutter_rust_bridge_codegen &> /dev/null; then
+              echo "Installing flutter_rust_bridge_codegen..."
+              cargo install flutter_rust_bridge_codegen --version 1.80.1 --features "uuid" --locked
+          fi
+          
+          # 生成桥接代码
+          flutter_rust_bridge_codegen --rust-input src/flutter_ffi.rs --dart-output flutter/lib/generated_bridge.dart
+          
+          echo "Bridge code generated!"
       
       - name: Build RustDesk Linux
         run: |
