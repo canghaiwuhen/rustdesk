@@ -33,24 +33,64 @@ jobs:
       - name: Setup vcpkg dependencies
         shell: powershell
         run: |
-          if (-not (Test-Path "C:\vcpkg\installed\x64-windows-static\lib\opus.lib")) {
-              Write-Host "Installing vcpkg dependencies..."
-              if (-not (Test-Path "C:\vcpkg")) {
-                  git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
-                  cd C:\vcpkg
-                  .\bootstrap-vcpkg.bat
-              }
-              C:\vcpkg\vcpkg install opus:x64-windows-static vpx:x64-windows-static libyuv:x64-windows-static aom:x64-windows-static
-          } else {
-              Write-Host "vcpkg dependencies already installed"
+          # 确保 vcpkg 存在
+          if (-not (Test-Path "C:\vcpkg")) {
+              Write-Host "Installing vcpkg..." -ForegroundColor Yellow
+              git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
+              cd C:\vcpkg
+              .\bootstrap-vcpkg.bat
           }
-          $env:VCPKG_ROOT = "C:\vcpkg"
+          
+          # 检查并安装依赖
+          Write-Host "Checking vcpkg packages..." -ForegroundColor Yellow
+          
+          $packages = @("opus", "vpx", "libyuv", "aom")
+          foreach ($pkg in $packages) {
+              $installed = C:\vcpkg\vcpkg list | Select-String "${pkg}:x64-windows-static"
+              if (-not $installed) {
+                  Write-Host "Installing ${pkg}:x64-windows-static..." -ForegroundColor Cyan
+                  C:\vcpkg\vcpkg install "${pkg}:x64-windows-static"
+              } else {
+                  Write-Host "${pkg} already installed" -ForegroundColor Green
+              }
+          }
+          
+          # 验证安装
+          Write-Host "`nInstalled packages:" -ForegroundColor Green
+          C:\vcpkg\vcpkg list
+          
+          # 验证头文件
+          if (Test-Path "C:\vcpkg\installed\x64-windows-static\include\vpx\vp8.h") {
+              Write-Host "vpx headers verified!" -ForegroundColor Green
+          } else {
+              Write-Host "ERROR: vpx headers missing!" -ForegroundColor Red
+              exit 1
+          }
       
       - name: Build RustDesk Windows
         shell: powershell
         env:
           VCPKG_ROOT: C:\vcpkg
+          LIBCLANG_PATH: C:\Program Files\LLVM\bin
         run: |
+          # 设置 vcpkg 环境变量
+          $env:VCPKG_ROOT = "C:\vcpkg"
+          
+          # 添加 vcpkg include 路径到 BINDGEN_EXTRA_CLANG_ARGS
+          $env:BINDGEN_EXTRA_CLANG_ARGS = "-I C:\vcpkg\installed\x64-windows-static\include"
+          
+          # 显示环境信息
+          Write-Host "VCPKG_ROOT: $env:VCPKG_ROOT"
+          Write-Host "BINDGEN_EXTRA_CLANG_ARGS: $env:BINDGEN_EXTRA_CLANG_ARGS"
+          
+          # 检查 vpx 头文件
+          if (Test-Path "C:\vcpkg\installed\x64-windows-static\include\vpx\vp8.h") {
+              Write-Host "vpx headers found" -ForegroundColor Green
+          } else {
+              Write-Host "vpx headers NOT found!" -ForegroundColor Red
+          }
+          
+          # 构建
           python build.py --flutter
         continue-on-error: true
       
