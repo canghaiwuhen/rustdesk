@@ -41,15 +41,18 @@ jobs:
               .\bootstrap-vcpkg.bat
           }
           
-          # 检查并安装依赖
+          # 切换到 vcpkg 目录（避免 manifest mode）
+          cd C:\vcpkg
+          
+          # 检查并安装依赖（使用 classic 模式）
           Write-Host "Checking vcpkg packages..." -ForegroundColor Yellow
           
-          $packages = @("opus", "vpx", "libyuv", "aom")
+          $packages = @("opus", "libvpx", "libyuv", "aom")
           foreach ($pkg in $packages) {
-              $installed = C:\vcpkg\vcpkg list | Select-String "${pkg}:x64-windows-static"
+              $installed = .\vcpkg list | Select-String "${pkg}:x64-windows-static"
               if (-not $installed) {
                   Write-Host "Installing ${pkg}:x64-windows-static..." -ForegroundColor Cyan
-                  C:\vcpkg\vcpkg install "${pkg}:x64-windows-static"
+                  .\vcpkg install "${pkg}:x64-windows-static" --clean-after-build
               } else {
                   Write-Host "${pkg} already installed" -ForegroundColor Green
               }
@@ -57,7 +60,7 @@ jobs:
           
           # 验证安装
           Write-Host "`nInstalled packages:" -ForegroundColor Green
-          C:\vcpkg\vcpkg list
+          .\vcpkg list
           
           # 验证头文件
           if (Test-Path "C:\vcpkg\installed\x64-windows-static\include\vpx\vp8.h") {
