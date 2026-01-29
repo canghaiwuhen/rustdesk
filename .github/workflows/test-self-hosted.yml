@@ -21,13 +21,17 @@ jobs:
           token: ${{ secrets.PAT_TOKEN }}
       
       - name: Show Environment
+        shell: powershell
         run: |
           Write-Host "ComputerName: $env:COMPUTERNAME"
           Write-Host "OS: $env:OS"
+          Write-Host "Rust version:"
           rustc --version
+          Write-Host "Flutter version:"
           flutter --version
       
       - name: Build RustDesk Windows
+        shell: powershell
         run: |
           python build.py --flutter
         continue-on-error: true
@@ -54,7 +58,9 @@ jobs:
         run: |
           echo "Hostname: $(hostname)"
           echo "OS: $(uname -a)"
+          echo "Rust version:"
           rustc --version
+          echo "Flutter version:"
           flutter --version
           echo "VCPKG_ROOT: $VCPKG_ROOT"
       
@@ -85,7 +91,8 @@ jobs:
         run: |
           echo "Android SDK: $ANDROID_SDK_ROOT"
           echo "NDK: $NDK_HOME"
-          sdkmanager --list_installed
+          echo "Installed packages:"
+          sdkmanager --list_installed | head -20
       
       - name: Build Android Dependencies
         run: |
