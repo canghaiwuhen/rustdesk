@@ -1,0 +1,55 @@
+name: Debug Windows vcpkg
+
+on:
+  workflow_dispatch:
+
+jobs:
+  debug-vcpkg:
+    name: Check vcpkg Installation
+    runs-on: [self-hosted, windows]
+    steps:
+      - name: Check vcpkg
+        shell: powershell
+        run: |
+          Write-Host "=== Checking vcpkg ===" -ForegroundColor Green
+          
+          if (Test-Path "C:\vcpkg") {
+              Write-Host "vcpkg directory exists" -ForegroundColor Green
+              
+              Write-Host "`nInstalled packages:"
+              C:\vcpkg\vcpkg list
+              
+              Write-Host "`nChecking vpx headers:"
+              if (Test-Path "C:\vcpkg\installed\x64-windows-static\include\vpx") {
+                  Get-ChildItem "C:\vcpkg\installed\x64-windows-static\include\vpx" | Format-Table Name
+              } else {
+                  Write-Host "vpx headers NOT found!" -ForegroundColor Red
+              }
+              
+              Write-Host "`nChecking opus headers:"
+              if (Test-Path "C:\vcpkg\installed\x64-windows-static\include\opus") {
+                  Get-ChildItem "C:\vcpkg\installed\x64-windows-static\include\opus" | Format-Table Name
+              } else {
+                  Write-Host "opus headers NOT found!" -ForegroundColor Red
+              }
+          } else {
+              Write-Host "vcpkg NOT installed!" -ForegroundColor Red
+          }
+          
+      - name: Check LLVM/Clang
+        shell: powershell
+        run: |
+          Write-Host "=== Checking LLVM/Clang ===" -ForegroundColor Green
+          
+          $clangPaths = @(
+              "C:\Program Files\LLVM\bin\clang.exe",
+              "C:\Program Files (x86)\LLVM\bin\clang.exe"
+          )
+          
+          foreach ($path in $clangPaths) {
+              if (Test-Path $path) {
+                  Write-Host "Found: $path" -ForegroundColor Green
+                  & $path --version
+              }
+          }
+
