@@ -30,8 +30,26 @@ jobs:
           Write-Host "Flutter version:"
           flutter --version
       
+      - name: Setup vcpkg dependencies
+        shell: powershell
+        run: |
+          if (-not (Test-Path "C:\vcpkg\installed\x64-windows-static\lib\opus.lib")) {
+              Write-Host "Installing vcpkg dependencies..."
+              if (-not (Test-Path "C:\vcpkg")) {
+                  git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
+                  cd C:\vcpkg
+                  .\bootstrap-vcpkg.bat
+              }
+              C:\vcpkg\vcpkg install opus:x64-windows-static vpx:x64-windows-static libyuv:x64-windows-static aom:x64-windows-static
+          } else {
+              Write-Host "vcpkg dependencies already installed"
+          }
+          $env:VCPKG_ROOT = "C:\vcpkg"
+      
       - name: Build RustDesk Windows
         shell: powershell
+        env:
+          VCPKG_ROOT: C:\vcpkg
         run: |
           python build.py --flutter
         continue-on-error: true
@@ -93,6 +111,11 @@ jobs:
           echo "NDK: $NDK_HOME"
           echo "Installed packages:"
           sdkmanager --list_installed | head -20
+      
+      - name: Apply Flutter Patch
+        run: |
+          cd $FLUTTER_ROOT
+          git apply ${{ github.workspace }}/.github/patches/flutter_3.24.4_dropdown_menu_enableFilter.diff || echo "Patch already applied or not needed"
       
       - name: Build Android Dependencies
         run: |
