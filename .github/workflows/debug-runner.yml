@@ -1,0 +1,92 @@
+name: Debug Self-Hosted Runner
+
+on:
+  workflow_dispatch:
+
+jobs:
+  debug-linux:
+    name: Debug Linux Runner
+    runs-on: [self-hosted, ubuntu-24.04]
+    steps:
+      - name: Check Runner User
+        run: |
+          echo "=== Current User ==="
+          whoami
+          id
+          
+      - name: Check Home Directory
+        run: |
+          echo "=== Home Directory ==="
+          echo "HOME: $HOME"
+          ls -la $HOME
+          
+      - name: Check Actions Runner Directory
+        run: |
+          echo "=== Actions Runner Directory ==="
+          ls -la /home/runner/actions-runner/
+          
+      - name: Check Work Directory
+        run: |
+          echo "=== Work Directory ==="
+          ls -la /home/runner/actions-runner/_work/ || echo "_work directory does not exist"
+          
+      - name: Check _tool Directory
+        run: |
+          echo "=== Tool Directory ==="
+          ls -la /home/runner/actions-runner/_work/_tool || echo "_tool directory does not exist"
+          
+      - name: Check Permissions
+        run: |
+          echo "=== Permissions Check ==="
+          stat /home/runner/actions-runner/
+          stat /home/runner/actions-runner/_work/ || echo "_work does not exist"
+          
+      - name: Try to Create _tool Directory
+        run: |
+          echo "=== Attempting to create _tool ==="
+          mkdir -p /home/runner/actions-runner/_work/_tool || echo "Failed to create _tool"
+          ls -la /home/runner/actions-runner/_work/
+          
+      - name: Check Disk Space
+        run: |
+          echo "=== Disk Space ==="
+          df -h
+          
+      - name: Check Runner Process
+        run: |
+          echo "=== Runner Process ==="
+          ps aux | grep -i runner | head -10
+
+  debug-windows:
+    name: Debug Windows Runner
+    runs-on: [self-hosted, windows]
+    steps:
+      - name: Check Runner User
+        shell: powershell
+        run: |
+          Write-Host "=== Current User ==="
+          $env:USERNAME
+          whoami
+          
+      - name: Check Runner Directory
+        shell: powershell
+        run: |
+          Write-Host "=== Actions Runner Directory ==="
+          Get-ChildItem D:\actions-runner\ | Format-Table Name, LastWriteTime
+          
+      - name: Check Work Directory
+        shell: powershell
+        run: |
+          Write-Host "=== Work Directory ==="
+          if (Test-Path "D:\actions-runner\_work") {
+              Get-ChildItem "D:\actions-runner\_work" | Format-Table Name, LastWriteTime
+          } else {
+              Write-Host "_work directory does not exist"
+          }
+          
+      - name: Check Disk Space
+        shell: powershell
+        run: |
+          Write-Host "=== Disk Space ==="
+          Get-PSDrive -PSProvider FileSystem | Format-Table Name, Used, Free
+
